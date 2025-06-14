@@ -1,3 +1,10 @@
 myenv/
 
 __pycache__/
+
+.env
+
+# Alembic migration environment
+alembic.ini
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
