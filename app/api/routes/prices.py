@@ -1,22 +1,13 @@
-from fastapi import APIRouter, Body, status
-
-from pydantic import BaseModel
+from fastapi import APIRouter, Query, HTTPException, Body, status
 from typing import List
+from app.services.providers.yahoo import YahooFinanceProvider
+from app.schemas.price import PriceResponse, PollRequest, PollResponse
 
 router = APIRouter()
-
-class PollRequest(BaseModel):
-    symbols: List[str]
-    interval: int
-    provider: str
-
-class PollResponse(BaseModel):
-    job_id: str
-    status: str
-    config: dict
+yahoo_provider = YahooFinanceProvider()
 
 @router.post("/prices/poll", response_model=PollResponse, status_code=status.HTTP_202_ACCEPTED)
-async def poll_prices(request: PollRequest = Body(...)):
+async def poll_prices(request: PollRequest = Body(...)) -> PollResponse:
     # Placeholder implementation
     return PollResponse(
         job_id="example-job-id",
@@ -27,3 +18,12 @@ async def poll_prices(request: PollRequest = Body(...)):
             "provider": request.provider
         }
     )
+
+@router.get("/latest", response_model=PriceResponse)
+async def get_latest_price(symbol: str = Query(...), provider: str = Query("yahoo")) -> PriceResponse:
+    if provider != "yahoo":
+        raise HTTPException(status_code=400, detail="Only 'yahoo' provider is supported for now.")
+    try:
+        return yahoo_provider.get_latest_price(symbol)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
