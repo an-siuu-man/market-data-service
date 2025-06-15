@@ -1,0 +1,12 @@
+alembic
+fastapi
+SQLAlchemy
+asyncpg
+psycopg2-binary
+uvicorn
+pydantic
+pandas
+numpy
+requests
+yfinance
+confluent-kafka
