@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-WORKDIR /app
+WORKDIR /market-data-service
 ENV PYTHONPATH=/market-data-service
 
 COPY requirements.txt .

@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Query, HTTPException, Body, status, Depends
-from uuid import uuid4
 from sqlalchemy.orm import Session
+from uuid import uuid4
 from datetime import datetime, timezone
+
 from app.core.database import get_db
 from app.services.providers.yahoo import YahooFinanceProvider
 from app.schemas.price import PriceResponse, PollRequest, PollResponse
-
 from app.models.polling_job import PollingJob
 from app.models.raw_market_data import RawMarketData
 from app.models.price_point import PricePoint
+from app.services.kafka.producer import publish_price_event
+from app.core.scheduler import start_polling_job
+
+
 
 router = APIRouter()
 yahoo_provider = YahooFinanceProvider()
@@ -31,6 +35,9 @@ async def poll_prices(
 
     db.add(polling_job)
     db.commit()
+    
+    start_polling_job(request.symbols, request.interval, request.provider)
+
 
     return PollResponse(
         job_id=job_id,
@@ -41,7 +48,6 @@ async def poll_prices(
             "provider": request.provider
         }
     )
-
 
 @router.get("/latest", response_model=PriceResponse)
 async def get_latest_price(
@@ -62,7 +68,7 @@ async def get_latest_price(
             symbol=price_response.symbol,
             timestamp=datetime.fromisoformat(price_response.timestamp.replace("Z", "+00:00")),
             source=provider,
-            data=price_response.model_dump()  # optionally store entire response
+            data=price_response.model_dump()
         )
         db.add(raw)
         db.flush()  # to get raw.id before commit
@@ -78,6 +84,14 @@ async def get_latest_price(
         )
         db.add(point)
         db.commit()
+
+        publish_price_event({
+            "symbol": price_response.symbol,
+            "price": price_response.price,
+            "timestamp": price_response.timestamp,
+            "source": provider,
+            "raw_response_id": str(raw.id)
+        })
 
         return price_response
 

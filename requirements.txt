@@ -10,3 +10,4 @@ numpy
 requests
 yfinance
 confluent-kafka
+apscheduler

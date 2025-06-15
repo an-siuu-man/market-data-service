@@ -1,23 +1,71 @@
+version: '3.8'
+
 services:
-  api:
-    build: .
+  # ----------------------------------
+  # FastAPI application (main API)
+  # ----------------------------------
+  market-api:
+    build:
+      context: .
     container_name: market-api
+    working_dir: /market-data-service  # ensure root path for imports
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     depends_on:
       - db
       - kafka
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - DB_URL=postgresql+asyncpg://postgres:98310@db:5432/market_data_service
-    volumes:
-      - .:/app
-    restart: unless-stopped
+      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
 
+  # ----------------------------------
+  # Poller – fetches prices & publishes to Kafka and DB
+  # ----------------------------------
+  poller:
+    build:
+      context: .
+    working_dir: /market-data-service
+    command: ["python", "scripts/poller.py"]
+    depends_on:
+      - kafka
+      - db
+    environment:
+      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
+
+  # ----------------------------------
+  # Moving‑Average Consumer – reads Kafka, computes MA, writes DB
+  # ----------------------------------
+  moving-average-consumer:
+    build:
+      context: .
+    working_dir: /market-data-service
+    command: ["python", "scripts/moving_average_consumer.py"]
+    depends_on:
+      - kafka
+      - db
+    environment:
+      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
+
+  # ----------------------------------
+  # Scheduler (APScheduler) – optional job scheduler
+  # ----------------------------------
+  scheduler:
+    build:
+      context: .
+    working_dir: /market-data-service
+    command: ["python", "scripts/scheduler.py"]
+    depends_on:
+      - kafka
+      - db
+    environment:
+      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
+
+  # ----------------------------------
+  # PostgreSQL database
+  # ----------------------------------
   db:
     image: postgres:14
     container_name: market-db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 98310
@@ -27,6 +75,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # ----------------------------------
+  # ZooKeeper for Kafka
+  # ----------------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
@@ -34,7 +85,9 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-
+  # ----------------------------------
+  # Kafka broker
+  # ----------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
@@ -45,11 +98,11 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
 
 volumes:
   pgdata:
