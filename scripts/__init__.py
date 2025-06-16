@@ -1,1 +1,1 @@
-# Makes the scripts folder a proper Python module
+# Initializes the scripts folder as a Python module

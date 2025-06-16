@@ -9,14 +9,32 @@ services:
       context: .
     container_name: market-api
     working_dir: /market-data-service  # ensure root path for imports
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["python", "-u", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+    volumes:
+      - .:/market-data-service    # <-- Mount project code!
     depends_on:
       - db
       - kafka
     environment:
       DB_URL: postgresql://postgres:98310@db:5432/market_data_service
+
+  # ----------------------------------
+  # DB Initializer – runs once to create tables if needed
+  # ----------------------------------
+  init-db:
+    build:
+      context: .
+    working_dir: /market-data-service
+    command: ["python", "-u", "scripts/init_db.py"]
+    volumes:
+      - .:/market-data-service
+    depends_on:
+      - db
+    environment:
+      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
+    restart: "no"
 
   # ----------------------------------
   # Poller – fetches prices & publishes to Kafka and DB
@@ -25,7 +43,9 @@ services:
     build:
       context: .
     working_dir: /market-data-service
-    command: ["python", "scripts/poller.py"]
+    command: ["python", "-u", "scripts/poller.py"]
+    volumes:
+      - .:/market-data-service
     depends_on:
       - kafka
       - db
@@ -39,21 +59,9 @@ services:
     build:
       context: .
     working_dir: /market-data-service
-    command: ["python", "scripts/moving_average_consumer.py"]
-    depends_on:
-      - kafka
-      - db
-    environment:
-      DB_URL: postgresql://postgres:98310@db:5432/market_data_service
-
-  # ----------------------------------
-  # Scheduler (APScheduler) – optional job scheduler
-  # ----------------------------------
-  scheduler:
-    build:
-      context: .
-    working_dir: /market-data-service
-    command: ["python", "scripts/scheduler.py"]
+    command: ["python", "-u", "scripts/moving_average_consumer.py"]
+    volumes:
+      - .:/market-data-service
     depends_on:
       - kafka
       - db

@@ -1,3 +1,4 @@
+# API endpoints for price polling and job scheduling
 from fastapi import APIRouter, Query, HTTPException, Body, status, Depends
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -22,6 +23,10 @@ async def poll_prices(
     request: PollRequest = Body(...),
     db: Session = Depends(get_db)
 ) -> PollResponse:
+    """
+    Schedule a new polling job for the given symbols and interval.
+    Stores the job in the database and starts the polling scheduler.
+    """
     job_id = str(uuid4())
 
     polling_job = PollingJob(

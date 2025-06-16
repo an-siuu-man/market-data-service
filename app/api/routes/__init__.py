@@ -1,3 +1,5 @@
+# This module sets up the main API router and includes the prices and poll routers
+
 from fastapi import APIRouter
 from .prices import router as prices_router
 

@@ -1,3 +1,5 @@
+# Initializes the main API router and includes all route modules
+
 from fastapi import APIRouter
 from app.api.routes import router as routes_router
 

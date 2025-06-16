@@ -1,0 +1,74 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Installer logs
+pip-log.txt
+debug.log
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+.cache
+coverage.xml
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database
+postgres-data/
+
+# Python virtual environments
+myenv/
+
+# Logs
+*.log
+
+# Misc
+*.sqlite3
+*.db
+*.bak
+*.swp
+*.swo
+
+# Ignore migration cache
+app/__pycache__/
+migrations/__pycache__/
+migrations/versions/__pycache__/
+
+# Ignore secrets
+*.json
+!app/schemas/*.json
+!app/models/*.json
+
+# Ignore scripts cache
+scripts/__pycache__/
+
+# Ignore test data
+*.test.json
+*.test.csv
+
+# Ignore temp files
+*.tmp
+*.temp
+
+# Ignore editor swap files
+*~
+*.swp
+*.swo
